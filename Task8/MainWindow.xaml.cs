@@ -1,26 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 using System.IO;
+using System.Linq;
+using System.Windows;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
-
+using Newtonsoft.Json; // Не забудьте добавить ссылку на Newtonsoft.Json
 
 namespace Task8
 {
-    /// <summary>
-    /// Логика взаимодействия для MainWindow.xaml
-    /// </summary>
     public partial class MainWindow : Window
     {
         private string targetWord;
@@ -28,27 +16,7 @@ namespace Task8
         private int errorCount = 0;
         private const int MaxErrors = 6;
 
-        private string[] words = {
-    "акушёр", "аматёр", "абазия", "абляут", "абулия", "аварея", "авария", "агамия",
-    "агония", "адская", "адуляр", "азалия", "азеять", "акация", "акулья", "алалуя",
-    "альянс", "алякиш", "аляска", "аляски", "ананья", "анемия", "аномия", "анурия",
-    "апатия", "бабёха", "балазё", "балдёж", "Башнёр", "белёсо", "берёга", "берёза",
-    "блёкло", "боксёр", "бракёр", "бретёр", "бритьё", "брусьё", "бабатя", "бабняк",
-    "бабуля", "бабуня", "бабуся", "бабьяк", "багуля", "бадьян", "бадяга", "баклея",
-    "бакуня", "баляба", "вахтёр", "вдвоём", "вдомёк", "вдёжка", "взачёт", "винтёр",
-    "вкрёпа", "вмётка", "внетьё", "водоём", "возлёт", "вояжёр", "вперёд", "впёхом",
-    "враньё", "втроём", "выдёма", "высёха", "вёртко", "вальмя", "вальня", "вальян",
-    "валява", "валять", "валяха", "галдёж", "гнильё", "гнутьё", "гольём", "гостёк",
-    "грабёж", "гравёр", "гримёр", "гулёна", "гальян", "гальяс", "гаолян", "гарпия",
-    "гачуля", "гиляки", "главня", "глупая", "глухня", "глушня", "глядка", "глядун",
-    "глянец", "гмыдня", "гнедая", "гнетья", "далёко", "днёвка", "дождём", "долбёж",
-    "доёнка", "драньё", "дрябьё", "дрёмно", "дублёр", "дурёха", "дёготь", "дёшево",
-    "давяга", "данная", "даться", "дафния", "даяние", "двойня", "дворня", "двояки",
-    "двояко", "двуряд", "девоня", "девуля", "девуня", "едунья", "ельняк", "есться",
-    "единою", "еденье", "ездить", "езжать", "езовье", "екнуть", "елмань", "елчать",
-    "елчить", "ельник", "ельшин", "ембель", "емлить", "енбель", "ербень", "ердань",
-    "ерзать", "ерпыль", "ершить", "еханье", "евоный", "единый"
-};
+        private List<string> words; // Список слов
         private string animationFolder = "Animations"; // Папка с анимациями
         private DispatcherTimer animationTimer;
         private int currentFrame;
@@ -57,18 +25,40 @@ namespace Task8
         public MainWindow()
         {
             InitializeComponent();
+            LoadWordsFromJson("russian_words_lower.json"); // Загружаем слова из JSON-файла
             StartGame();
             InitializeTimer();
+        }
+
+        private void LoadWordsFromJson(string filePath)
+        {
+            if (File.Exists(filePath))
+            {
+                // Читаем и десериализуем JSON
+                var json = File.ReadAllText(filePath);
+                var wordList = JsonConvert.DeserializeObject<WordList>(json);
+                words = wordList.Words.ToList();
+            }
+            else
+            {
+                MessageBox.Show($"Файл '{filePath}' не найден!");
+                words = new List<string>(); // Если файл не найден, инициализируем пустой список
+            }
         }
 
         private void StartGame()
         {
             Random random = new Random();
-            targetWord = words[random.Next(words.Length)];
+            if (words.Count == 0)
+            {
+                MessageBox.Show("Нет доступных слов для игры.");
+                return;
+            }
+            targetWord = words[random.Next(words.Count)];
             guessedWord = new string('_', targetWord.Length).ToCharArray();
             UpdateWordDisplay();
             errorCount = 0;
-            GallowsImage.Source = new BitmapImage(new Uri("Animations/1/Sprite-0001.png", UriKind.Relative)); ;
+            GallowsImage.Source = new BitmapImage(new Uri("Animations/1/Sprite-0001.png", UriKind.Relative));
         }
 
         private void InitializeTimer()
@@ -124,7 +114,7 @@ namespace Task8
         private void LoadAnimationFrames(int partNumber)
         {
             // Загружаем все файлы из папки с текущим номером стадии
-            string folderPath = System.IO.Path.Combine(animationFolder, partNumber.ToString());
+            string folderPath = Path.Combine(animationFolder, partNumber.ToString());
             if (Directory.Exists(folderPath))
             {
                 currentAnimationFrames = Directory.GetFiles(folderPath, "*.png");
@@ -149,5 +139,10 @@ namespace Task8
                 animationTimer.Stop(); // Останавливаем таймер после показа всех кадров
             }
         }
+    }
+
+    public class WordList
+    {
+        public string[] Words { get; set; }
     }
 }
